@@ -18,12 +18,21 @@ public final class ProposalHttpHandler implements HttpHandler {
 
     @Override
     public void handle(HttpExchange exchange) throws IOException {
+        if ("GET".equalsIgnoreCase(exchange.getRequestMethod())) {
+            handleList(exchange);
+            return;
+        }
+
         if ("POST".equalsIgnoreCase(exchange.getRequestMethod())) {
             handleCreate(exchange);
             return;
         }
 
         send(exchange, 405, "Method not allowed", "text/plain; charset=utf-8");
+    }
+
+    private void handleList(HttpExchange exchange) throws IOException {
+        send(exchange, 200, JsonSupport.write(proposalStore.findAll()), "application/json; charset=utf-8");
     }
 
     private void handleCreate(HttpExchange exchange) throws IOException {
