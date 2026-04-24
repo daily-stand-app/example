@@ -18,6 +18,7 @@ public final class CfpApiApplication {
     public static void main(String[] args) throws IOException {
         HttpServer server = HttpServer.create(new InetSocketAddress(8080), 0);
         server.createContext("/", new RootHandler());
+        server.createContext("/proposals", new ProposalHttpHandler(PROPOSAL_STORE));
         server.start();
 
         System.out.println("Conference CfP API listening on http://localhost:8080");
