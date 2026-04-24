@@ -10,6 +10,7 @@ import java.net.InetSocketAddress;
 import java.nio.charset.StandardCharsets;
 
 public final class CfpApiApplication {
+    private static final ProposalStore PROPOSAL_STORE = new ProposalStore();
 
     private CfpApiApplication() {
     }
@@ -20,6 +21,7 @@ public final class CfpApiApplication {
         server.start();
 
         System.out.println("Conference CfP API listening on http://localhost:8080");
+        System.out.println("Proposal store initialized with " + PROPOSAL_STORE.count() + " entries.");
     }
 
     static final class RootHandler implements HttpHandler {
