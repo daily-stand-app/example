@@ -19,7 +19,7 @@ public final class ProposalHttpHandler implements HttpHandler {
     @Override
     public void handle(HttpExchange exchange) throws IOException {
         try {
-            if ("GET".equalsIgnoreCase(exchange.getRequestMethod())) {
+            if ("GET".equalsIgnoreCase(exchange.getRequestMethod()) && isCollectionRequest(exchange)) {
                 handleList(exchange);
                 return;
             }
@@ -29,10 +29,22 @@ public final class ProposalHttpHandler implements HttpHandler {
                 return;
             }
 
+            if ("GET".equalsIgnoreCase(exchange.getRequestMethod())) {
+                handleDetail(exchange);
+                return;
+            }
+
             send(exchange, 405, "Method not allowed", "text/plain; charset=utf-8");
         } catch (IllegalArgumentException exception) {
             send(exchange, 400, exception.getMessage(), "text/plain; charset=utf-8");
         }
+    }
+
+    private void handleDetail(HttpExchange exchange) throws IOException {
+        long proposalId = parseProposalId(exchange);
+        Proposal proposal = proposalStore.findById(proposalId)
+                .orElseThrow(() -> new IllegalArgumentException("Unknown proposal id: " + proposalId));
+        send(exchange, 200, JsonSupport.write(proposal), "application/json; charset=utf-8");
     }
 
     private void handleList(HttpExchange exchange) throws IOException {
@@ -71,6 +83,20 @@ public final class ProposalHttpHandler implements HttpHandler {
         try (InputStream inputStream = exchange.getRequestBody()) {
             return new String(inputStream.readAllBytes(), StandardCharsets.UTF_8);
         }
+    }
+
+    private static boolean isCollectionRequest(HttpExchange exchange) {
+        String path = exchange.getRequestURI().getPath();
+        return "/proposals".equals(path) || "/proposals/".equals(path);
+    }
+
+    private static long parseProposalId(HttpExchange exchange) {
+        String path = exchange.getRequestURI().getPath();
+        String[] segments = path.split("/");
+        if (segments.length < 3 || segments[2].isBlank()) {
+            throw new IllegalArgumentException("Missing proposal id in request path");
+        }
+        return Long.parseLong(segments[2]);
     }
 
     private static void send(HttpExchange exchange, int status, String body, String contentType) throws IOException {

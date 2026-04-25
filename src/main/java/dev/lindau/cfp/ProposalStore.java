@@ -3,6 +3,7 @@ package dev.lindau.cfp;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.atomic.AtomicLong;
 
 public final class ProposalStore {
@@ -29,6 +30,12 @@ public final class ProposalStore {
 
     public synchronized List<Proposal> findAll() {
         return List.copyOf(proposals);
+    }
+
+    public synchronized Optional<Proposal> findById(long id) {
+        return proposals.stream()
+                .filter(proposal -> proposal.id() == id)
+                .findFirst();
     }
 
     public synchronized long count() {
