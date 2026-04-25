@@ -5,6 +5,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.stream.Collectors;
 
 public final class ProposalStore {
     private final AtomicLong ids = new AtomicLong(1);
@@ -31,6 +32,13 @@ public final class ProposalStore {
 
     public synchronized List<Proposal> findAll() {
         return List.copyOf(proposals);
+    }
+
+    public synchronized List<Proposal> search(String speakerEmail, String tag) {
+        return proposals.stream()
+                .filter(proposal -> speakerEmail == null || speakerEmail.isBlank() || proposal.speakerEmail().equalsIgnoreCase(speakerEmail))
+                .filter(proposal -> tag == null || tag.isBlank() || proposal.tags().stream().anyMatch(entry -> entry.equalsIgnoreCase(tag)))
+                .collect(Collectors.toList());
     }
 
     public synchronized Optional<Proposal> findById(long id) {

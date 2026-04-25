@@ -6,8 +6,11 @@ import com.sun.net.httpserver.HttpHandler;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 public final class ProposalHttpHandler implements HttpHandler {
     private final ProposalStore proposalStore;
@@ -61,7 +64,9 @@ public final class ProposalHttpHandler implements HttpHandler {
     }
 
     private void handleList(HttpExchange exchange) throws IOException {
-        send(exchange, 200, JsonSupport.write(proposalStore.findAll()), "application/json; charset=utf-8");
+        Map<String, String> query = parseQuery(exchange);
+        List<Proposal> proposals = proposalStore.search(query.get("speakerEmail"), query.get("tag"));
+        send(exchange, 200, JsonSupport.write(proposals), "application/json; charset=utf-8");
     }
 
     private void handleCreate(HttpExchange exchange) throws IOException {
@@ -101,6 +106,22 @@ public final class ProposalHttpHandler implements HttpHandler {
     private static boolean isCollectionRequest(HttpExchange exchange) {
         String path = exchange.getRequestURI().getPath();
         return "/proposals".equals(path) || "/proposals/".equals(path);
+    }
+
+    private static Map<String, String> parseQuery(HttpExchange exchange) {
+        String rawQuery = exchange.getRequestURI().getRawQuery();
+        Map<String, String> values = new LinkedHashMap<>();
+        if (rawQuery == null || rawQuery.isBlank()) {
+            return values;
+        }
+
+        for (String pair : rawQuery.split("&")) {
+            String[] entry = pair.split("=", 2);
+            String key = URLDecoder.decode(entry[0], StandardCharsets.UTF_8);
+            String value = entry.length > 1 ? URLDecoder.decode(entry[1], StandardCharsets.UTF_8) : "";
+            values.put(key, value);
+        }
+        return values;
     }
 
     private static long parseProposalId(HttpExchange exchange) {
