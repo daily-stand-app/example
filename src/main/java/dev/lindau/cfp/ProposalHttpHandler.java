@@ -18,17 +18,21 @@ public final class ProposalHttpHandler implements HttpHandler {
 
     @Override
     public void handle(HttpExchange exchange) throws IOException {
-        if ("GET".equalsIgnoreCase(exchange.getRequestMethod())) {
-            handleList(exchange);
-            return;
-        }
+        try {
+            if ("GET".equalsIgnoreCase(exchange.getRequestMethod())) {
+                handleList(exchange);
+                return;
+            }
 
-        if ("POST".equalsIgnoreCase(exchange.getRequestMethod())) {
-            handleCreate(exchange);
-            return;
-        }
+            if ("POST".equalsIgnoreCase(exchange.getRequestMethod())) {
+                handleCreate(exchange);
+                return;
+            }
 
-        send(exchange, 405, "Method not allowed", "text/plain; charset=utf-8");
+            send(exchange, 405, "Method not allowed", "text/plain; charset=utf-8");
+        } catch (IllegalArgumentException exception) {
+            send(exchange, 400, exception.getMessage(), "text/plain; charset=utf-8");
+        }
     }
 
     private void handleList(HttpExchange exchange) throws IOException {
@@ -38,6 +42,7 @@ public final class ProposalHttpHandler implements HttpHandler {
     private void handleCreate(HttpExchange exchange) throws IOException {
         String requestBody = readRequestBody(exchange);
         ProposalSubmission submission = JsonSupport.read(requestBody, ProposalSubmission.class);
+        validate(submission);
         Proposal proposal = proposalStore.save(
                 submission.title(),
                 submission.speakerName(),
@@ -47,6 +52,19 @@ public final class ProposalHttpHandler implements HttpHandler {
         );
 
         send(exchange, 201, JsonSupport.write(proposal), "application/json; charset=utf-8");
+    }
+
+    private static void validate(ProposalSubmission submission) {
+        requireText(submission.title(), "title");
+        requireText(submission.speakerName(), "speakerName");
+        requireText(submission.speakerEmail(), "speakerEmail");
+        requireText(submission.abstractText(), "abstractText");
+    }
+
+    private static void requireText(String value, String fieldName) {
+        if (value == null || value.isBlank()) {
+            throw new IllegalArgumentException("Missing required field: " + fieldName);
+        }
     }
 
     private static String readRequestBody(HttpExchange exchange) throws IOException {
