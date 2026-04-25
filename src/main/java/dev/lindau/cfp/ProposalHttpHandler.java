@@ -29,6 +29,11 @@ public final class ProposalHttpHandler implements HttpHandler {
                 return;
             }
 
+            if ("PATCH".equalsIgnoreCase(exchange.getRequestMethod()) && isStatusRequest(exchange)) {
+                handleStatusUpdate(exchange);
+                return;
+            }
+
             if ("GET".equalsIgnoreCase(exchange.getRequestMethod())) {
                 handleDetail(exchange);
                 return;
@@ -44,6 +49,14 @@ public final class ProposalHttpHandler implements HttpHandler {
         long proposalId = parseProposalId(exchange);
         Proposal proposal = proposalStore.findById(proposalId)
                 .orElseThrow(() -> new IllegalArgumentException("Unknown proposal id: " + proposalId));
+        send(exchange, 200, JsonSupport.write(proposal), "application/json; charset=utf-8");
+    }
+
+    private void handleStatusUpdate(HttpExchange exchange) throws IOException {
+        long proposalId = parseProposalId(exchange);
+        StatusUpdateRequest statusUpdateRequest = JsonSupport.read(readRequestBody(exchange), StatusUpdateRequest.class);
+        ProposalStatus status = ProposalStatus.valueOf(statusUpdateRequest.status().trim().toUpperCase());
+        Proposal proposal = proposalStore.updateStatus(proposalId, status);
         send(exchange, 200, JsonSupport.write(proposal), "application/json; charset=utf-8");
     }
 
@@ -99,6 +112,11 @@ public final class ProposalHttpHandler implements HttpHandler {
         return Long.parseLong(segments[2]);
     }
 
+    private static boolean isStatusRequest(HttpExchange exchange) {
+        String path = exchange.getRequestURI().getPath();
+        return path.endsWith("/status");
+    }
+
     private static void send(HttpExchange exchange, int status, String body, String contentType) throws IOException {
         byte[] response = body.getBytes(StandardCharsets.UTF_8);
         exchange.getResponseHeaders().set("Content-Type", contentType);
@@ -115,5 +133,8 @@ public final class ProposalHttpHandler implements HttpHandler {
             String abstractText,
             List<String> tags
     ) {
+    }
+
+    public record StatusUpdateRequest(String status) {
     }
 }

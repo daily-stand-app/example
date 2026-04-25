@@ -10,6 +10,7 @@ public record Proposal(
         String speakerEmail,
         String abstractText,
         List<String> tags,
-        Instant submittedAt
+        Instant submittedAt,
+        ProposalStatus status
 ) {
 }

@@ -22,7 +22,8 @@ public final class ProposalStore {
                 speakerEmail,
                 abstractText,
                 List.copyOf(tags),
-                Instant.now()
+                Instant.now(),
+                ProposalStatus.SUBMITTED
         );
         proposals.add(proposal);
         return proposal;
@@ -36,6 +37,27 @@ public final class ProposalStore {
         return proposals.stream()
                 .filter(proposal -> proposal.id() == id)
                 .findFirst();
+    }
+
+    public synchronized Proposal updateStatus(long id, ProposalStatus status) {
+        for (int index = 0; index < proposals.size(); index++) {
+            Proposal current = proposals.get(index);
+            if (current.id() == id) {
+                Proposal updated = new Proposal(
+                        current.id(),
+                        current.title(),
+                        current.speakerName(),
+                        current.speakerEmail(),
+                        current.abstractText(),
+                        current.tags(),
+                        current.submittedAt(),
+                        status
+                );
+                proposals.set(index, updated);
+                return updated;
+            }
+        }
+        throw new IllegalArgumentException("Unknown proposal id: " + id);
     }
 
     public synchronized long count() {
