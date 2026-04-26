@@ -17,8 +17,8 @@ public final class CfpApiApplication {
 
     public static void main(String[] args) throws IOException {
         HttpServer server = HttpServer.create(new InetSocketAddress(8080), 0);
-        server.createContext("/", new RootHandler());
-        server.createContext("/proposals", new ProposalHttpHandler(PROPOSAL_STORE));
+        server.createContext("/", new RequestLoggingHandler(new RootHandler()));
+        server.createContext("/proposals", new RequestLoggingHandler(new ProposalHttpHandler(PROPOSAL_STORE)));
         server.start();
 
         System.out.println("Conference CfP API listening on http://localhost:8080");
@@ -34,6 +34,20 @@ public final class CfpApiApplication {
             try (OutputStream outputStream = exchange.getResponseBody()) {
                 outputStream.write(body);
             }
+        }
+    }
+
+    static final class RequestLoggingHandler implements HttpHandler {
+        private final HttpHandler delegate;
+
+        RequestLoggingHandler(HttpHandler delegate) {
+            this.delegate = delegate;
+        }
+
+        @Override
+        public void handle(HttpExchange exchange) throws IOException {
+            System.out.printf("request %s %s%n", exchange.getRequestMethod(), exchange.getRequestURI());
+            delegate.handle(exchange);
         }
     }
 }
