@@ -16,6 +16,13 @@ public final class ProposalStore {
                                       String speakerEmail,
                                       String abstractText,
                                       List<String> tags) {
+        boolean duplicateExists = proposals.stream()
+                .anyMatch(proposal -> proposal.title().equalsIgnoreCase(title)
+                        && proposal.speakerEmail().equalsIgnoreCase(speakerEmail));
+        if (duplicateExists) {
+            throw new IllegalArgumentException("A proposal with this title already exists for the speaker");
+        }
+
         Proposal proposal = new Proposal(
                 ids.getAndIncrement(),
                 title,
